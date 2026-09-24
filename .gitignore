@@ -1,0 +1,5 @@
+/dist/
+/DerivedData/
+.DS_Store
+*.xcuserstate
+**/xcuserdata/

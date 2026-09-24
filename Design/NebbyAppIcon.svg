@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Nebby app icon">
+  <!-- Blue sampled from ../references/nebby-cover.png; the white selection capsule omits the cover lettering. -->
+  <rect x="32" y="32" width="960" height="960" rx="210" fill="#0165E2"/>
+  <rect x="206" y="407" width="612" height="210" rx="105" fill="#FFFFFF"/>
+  <rect x="240" y="441" width="544" height="142" rx="71" fill="#0165E2"/>
+</svg>
