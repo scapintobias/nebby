@@ -2,6 +2,8 @@
 
 **A selection-aware Get Info for macOS.**
 
+![Nebby](Design/nebby-cover.png)
+
 Finder understands individual files very well. It becomes considerably less coherent when several files are selected: `⌘I` opens one Get Info window per item, while Summary Info and Finder’s Inspector reduce the collection to only part of what is known about it.
 
 Nebby starts from a different premise:
@@ -10,7 +12,7 @@ Nebby starts from a different premise:
 
 Instead of multiplying windows or flattening a selection into a few totals, Nebby keeps the collection intact while exposing what its members share, where they differ, and what can meaningfully be understood about them together.
 
-<!-- Hero screenshot or short demo video -->
+![Nebby inspecting a 38-item selection](Design/hero-dark.png)
 
 ## One selection, one information surface
 
