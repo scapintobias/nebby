@@ -1,41 +1,98 @@
 # Nebby
 
-A selection-aware Get Info concept for macOS.
+**A selection-aware Get Info for macOS.**
 
-Finder's Get Info is centred on individual files. Invoking it for many selected items opens separate windows; Summary Info and Finder's Inspector show only parts of the collection. Nebby explores a different question: **What is true of this selection?** It treats the selection itself as one inspectable object while keeping its members available for closer inspection.
+Finder understands individual files very well. It becomes considerably less coherent when several files are selected: `⌘I` opens one Get Info window per item, while Summary Info and Finder’s Inspector reduce the collection to only part of what is known about it.
 
-## The interaction
+Nebby starts from a different premise:
 
-Nebby opens as a compact inspector with an aggregate General section and a collapsed Items section. Expanding Items widens the window and reveals a native file table with name, kind, size, dimensions and modification date. File icons come from macOS. Selecting a row, a range or a discontiguous set changes the information shown in General.
+> **The selection is itself an object.**
 
-The **parent selection** is the set of files supplied through Open or a Finder drag. The **inspection scope** is the set currently examined inside Nebby. Row selection changes only that local scope; the parent selection and window identity remain intact. A one-item scope shows that item's values, while a subset recomputes aggregates for its members. **All N Items** returns to the full parent selection. Clearing table selection also restores the full scope. Replacing the input resets the local scope.
+Instead of multiplying windows or flattening a selection into a few totals, Nebby keeps the collection intact while exposing what its members share, where they differ, and what can meaningfully be understood about them together.
 
-<!-- Insert a verified capture of the compact running app here. -->
-<!-- Insert verified captures of the expanded table and a local subset scope here. -->
+<!-- Hero screenshot or short demo video -->
 
-## Information that keeps its meaning
+## One selection, one information surface
 
-Nebby preserves individual, shared, mixed and aggregate values. It also distinguishes a field that applies to only some objects from a field that applies but could not be read. For example, a tag can be present on every item in the current scope, some items or none. Image dimensions can apply to only the images in a mixed file selection; unreadable dimensions for one of those images are a different state from dimensions being inapplicable to a folder.
+Nebby opens as a compact inspector for the complete selection.
 
-The Tags section demonstrates scope-aware editing with native checked, indeterminate and unchecked controls. These tag changes are held in local prototype state; they do not modify Finder tags. The Sharing & Permissions section demonstrates a controlled partial-failure operation and does not change filesystem permissions. Its rule is **successful changes persist**: unresolved items remain visible, and Retry targets only those items. Dismiss closes the report without rolling back successes.
+Its **General** section describes the collection: item types, known size, location, dates, dimensions and other properties that can be shared, mixed or aggregated.
+
+Expanding **Items** reveals the files behind that summary in a native macOS table. The window grows with the interaction rather than switching to another view.
+
+The table behaves like a Mac table should: native file icons, sortable columns, multiple selection, keyboard behaviour and a configurable column set.
+
+<!-- Expanded Items screenshot -->
+
+Selecting rows does not replace the original selection. It creates a narrower **inspection scope** inside it.
+
+A single selected row shows that file’s information. Selecting several rows recomputes the same inspector for that subset. **All N Items** returns to the complete parent selection without rebuilding the context.
+
+<!-- Single-item and subset screenshots -->
+
+## Information without flattening
+
+Multi-selection creates several different kinds of information, and Nebby keeps them distinct.
+
+A property can be:
+
+- **shared** — every item has the same value;
+- **mixed** — the property applies to the selection, but values differ;
+- **aggregate** — individual values can be meaningfully combined or ranged;
+- **partially applicable** — the property only makes sense for some items;
+- **unavailable** — the property should exist, but could not be read.
+
+Those distinctions matter.
+
+A folder does not have “unknown image dimensions”; dimensions simply do not apply to it. A corrupt image is different: dimensions do apply, but could not be read. Treating both cases as `N/A` would discard useful information.
+
+The same model applies to editable properties. A tag can exist on all items, some items or none, represented through native checked, indeterminate and unchecked states.
+
+<!-- Mixed tags screenshot -->
+
+## Scope-aware changes
+
+Edits apply to the current inspection scope.
+
+There is no secondary “Apply to all” concept because the target has already been established by the interaction: all parent items, one item, or the currently inspected subset.
+
+When an operation only partly succeeds, Nebby does not turn the result into an all-or-nothing failure.
+
+> **Successful changes persist.**
+
+The unresolved items remain visible with their individual failure reasons. Retry operates only on those failures; successful work is not repeated or rolled back.
+
+<!-- Partial failure screenshot -->
 
 ## Design principles
 
-- One selection, one information surface.
-- Shared, aggregate and mixed values retain distinct meanings.
-- Inspect a member or subset without losing parent context.
-- Bulk edits operate on an explicit inspection scope.
-- Successful changes survive partial failure.
+1. **One selection, one information surface.**
+2. **Shared, mixed and aggregate values retain different meanings.**
+3. **Inspect a member or subset without losing the parent context.**
+4. **The current scope determines the target of an edit.**
+5. **Partial failure does not erase successful work.**
+6. **Native macOS behaviour takes precedence over imitating a mock-up.**
 
 ## Native implementation
 
-`FileInputController` accepts Open-panel and dropped-file input. `ParentSelection` owns the original URLs and loads immutable `FileItem` records through `FileMetadataReader`. The reader uses `URLResourceValues` for file facts and ImageIO for image dimensions. `InspectionScope` tracks stable item identities independently from the parent. `SelectionAggregator` derives `AggregateSelection` from exactly the items in the active scope; presentation code formats those results without duplicating aggregation rules.
+Nebby is a native macOS application built in Swift.
 
-SwiftUI provides the inspector and disclosure layout. An AppKit `NSTableView` provides desktop row selection and keyboard behaviour. `NSOpenPanel` handles Open; `NSWorkspace` supplies native file icons. The controlled tag and partial-failure state machines remain separate from the views.
+The domain model is deliberately separate from the interface:
 
-## Build and test
+- `FileItem` represents immutable metadata for one filesystem object.
+- `ParentSelection` owns the files supplied to Nebby.
+- `InspectionScope` identifies the subset currently being examined.
+- `FileMetadataReader` reads filesystem metadata through Foundation and ImageIO.
+- `SelectionAggregator` derives shared, mixed, aggregate and partial values from any inspection scope.
+- `AggregateSelection` carries those semantics without presentation strings leaking into the model.
 
-The project targets **macOS 27.0** and was built with **Xcode 27.0**. The Xcode project sets Swift language version 5.0. An installed Xcode, rather than only Command Line Tools, is required for the commands below.
+SwiftUI provides the inspector and disclosure structure. AppKit is used where native desktop behaviour matters: the Items view is backed by `NSTableView`, giving Nebby standard macOS row selection, keyboard interaction, sorting and column behaviour rather than recreating them in a custom control.
+
+Native file icons come from `NSWorkspace`. File input uses `NSOpenPanel` and Finder drag-and-drop.
+
+## Build
+
+Nebby currently targets **macOS 27.0** and was built with **Xcode 27.0**.
 
 ```sh
 git clone https://github.com/scapintobias/nebby.git
@@ -43,28 +100,60 @@ cd nebby
 open Nebby.xcodeproj
 ```
 
-Build the Debug app and run the full test suite from the repository root:
+Build the Debug app:
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Nebby.xcodeproj -scheme Nebby -configuration Debug \
-  -destination 'platform=macOS' -derivedDataPath /tmp/NebbyDebugDerivedData \
-  CODE_SIGNING_ALLOWED=NO build
-
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Nebby.xcodeproj -scheme Nebby -configuration Debug \
-  -destination 'platform=macOS' -derivedDataPath /tmp/NebbyTestDerivedData \
-  CODE_SIGNING_ALLOWED=NO test
+  -project Nebby.xcodeproj \
+  -scheme Nebby \
+  -configuration Debug \
+  -destination 'platform=macOS' \
+  -derivedDataPath /tmp/NebbyDebugDerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  build
 ```
 
-The 43 tests cover file metadata extraction, folders, symbolic links, image dimensions and corrupt metadata; aggregate meaning and incomplete applicability; inspection scope; mixed tag state; and partial-failure recovery. The test suite uses local fixtures and deterministic operation state.
+Run the test suite:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+  -project Nebby.xcodeproj \
+  -scheme Nebby \
+  -configuration Debug \
+  -destination 'platform=macOS' \
+  -derivedDataPath /tmp/NebbyTestDerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  test
+```
+
+The test suite covers metadata extraction, folders, symbolic links, image dimensions, corrupt metadata, aggregate semantics, incomplete applicability, inspection scope, mixed state and partial-failure recovery.
 
 ## Local app
 
-Run `./Scripts/build-local-app.sh` to produce an ad-hoc signed Release build at `dist/Nebby.app`. It can be opened locally in Finder. [LOCAL_APP.md](LOCAL_APP.md) explains the script and icon-source workflow. `dist/` and Xcode build intermediates are excluded from Git. This local build is distinct from signed and notarised public distribution; no public release package is provided.
+A local Release build can be produced with:
 
-## Status and origin
+```sh
+./Scripts/build-local-app.sh
+```
 
-Nebby is a native macOS interaction-design prototype, not a Finder replacement. It does not intercept Finder's ⌘I command. The current tag and permission interactions are controlled demonstrations; they leave user files unchanged. There is no public signing or notarisation. Open-panel selection and Finder drag input can differ for symbolic links because they use different macOS input paths.
+The resulting application is written to:
 
-The premise came from a small macOS irritation: selecting many Finder items and pressing ⌘I creates one Get Info window for every item. Nebby explores what changes when the selection, rather than each individual file, becomes the primary object of inspection.
+```text
+dist/Nebby.app
+```
+
+`LOCAL_APP.md` documents the local build and icon workflow.
+
+This is currently a local build, not a signed and notarised public distribution package.
+
+## Status
+
+Nebby began as an interaction-design study and now exists as a functioning native macOS application.
+
+It is deliberately not a Finder replacement. The current build accepts selections through Open and Finder drag-and-drop; direct replacement of Finder’s `⌘I` behaviour is not yet implemented.
+
+The original question remains the entire project:
+
+> **What is true of this selection?**
+
+Nebby is an attempt to make macOS answer that question without opening forty windows.
